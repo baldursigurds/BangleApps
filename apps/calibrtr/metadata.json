@@ -1,0 +1,13 @@
+{ "id": "calibrtr",
+  "name": "Calibrtr",
+  "shortName": "Calibrtr",
+  "icon": "app.png",
+  "description": "Calibration for the Puck.js magnetometer",
+  "tags": "tool,bluetooth",
+  "supports": ["BANGLEJS2"],
+  "readme": "README.md",
+  "storage": [
+    {"name":"calibrtr.app.jps","url": "calibrtr.js"},
+    {"name":"calibrtr.img","url":"app-icon.js","evaluate":true}
+  ]
+}
