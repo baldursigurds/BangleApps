@@ -1,0 +1,13 @@
+{ "id": "datr",
+  "name": "Datr",
+  "shortName": "Datr",
+  "icon": "app.png",
+  "description": "Puck.js sensor data collection",
+  "tags": "tool,bluetooth",
+  "supports": ["BANGLEJS2"],
+  "readme": "README.md",
+  "storage": [
+    {"name":"datr.app.js","url": "datr.js"},
+    {"name":"datr.img","url":"app-icon.js","evaluate":true}
+  ]
+}
