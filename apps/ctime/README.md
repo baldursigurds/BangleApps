@@ -6,6 +6,8 @@ An espresso timer
 
 - Basic stopwatch
 - Keeps display on
+- Tap screen to start/stop
+- Double tap to clear screen
 - Widgets
 
 ## Creator
