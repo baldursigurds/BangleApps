@@ -46,7 +46,6 @@ function display() {
   }
 }
 
-setInterval(() => {console.log(state);},500);
 function onBtn(n,e) {
   if(state == "clear") {
     startTime = Date.now();
