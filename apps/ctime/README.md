@@ -12,4 +12,4 @@ An espresso timer
 
 ## Creator
 
-Baldur Sigurðsson ([baldursigurds](https://github.com/baldursigurd))
+Baldur Sigurðsson ([baldursigurds](https://github.com/baldursigurds))
