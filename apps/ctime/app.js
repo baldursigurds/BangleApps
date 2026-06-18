@@ -17,9 +17,10 @@ let stopT;
 
 function display() {
   g.clear(1);
+  Bangle.loadWidgets();
   Bangle.drawWidgets();
   g.setFontAlign(0,0);
-  g.setFont("14:2");
+  g.setFont("14:3");
   g.setColor("#6f4e37");
   let i;
   for(i=4; i<w; i+=9) {
