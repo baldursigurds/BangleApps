@@ -5,8 +5,7 @@ A speedometer based on data science.
 ## Features
 
 - Uses the tensorflow module.
-- Requires heart rate monitor chest strap with accelerometers.
-- Only the Polar H10 is supported at the moment.
+- Requires heart rate monitor chest strap with accelerometers (e.g. Polar H10).
 - Model is in a separate module, and so can be swapped out.
 - Can record data for further training (limited by external memory).
 
