@@ -80,6 +80,8 @@ var TRANSFER_RETRY_MS = 400;   // re-ask for missing frames once data has stoppe
    counting and resetting the FIFO if it overran. Each time the buffer fills
    (~1s at 208Hz) it's written to frdata.bin after the header. If that fails,
    recording stops with an ERROR line
+ * While recording, the red LED blinks briefly once a second (a 30ms flash,
+   to save the battery)
  * At the end, frdata.json is written - it's what says a recording is complete
  * Nothing is printed unless connected, and if the connection's gone when it
    finishes, it restarts itself (load())
@@ -92,7 +94,7 @@ var TRANSFER_RETRY_MS = 400;   // re-ask for missing frames once data has stoppe
 var PUCK_CODE = `
 (function(){
 var S = require("Storage"), F = "frdata.bin", J = "frdata.json";
-var n = 0, got = 0, overruns = 0, last = 0, iv, info, ram, rpos = 0, flushed = 0, FIFO_ON = 0, failed;
+var n = 0, got = 0, overruns = 0, last = 0, iv, info, ram, rpos = 0, flushed = 0, FIFO_ON = 0, failed, ticks = 0;
 var frame = new Uint8Array(10 + 240);
 function connected() { return NRF.getSecurityStatus().connected; }
 function flush() {
@@ -105,6 +107,7 @@ function done() {
   if (!iv) return;
   clearInterval(iv);
   iv = undefined;
+  digitalWrite(LED1, 0);
   Puck.accelOff();
   flush();
   if (failed) { S.erase(F); S.erase(J); if (connected()) Bluetooth.println(failed); return; }
@@ -115,6 +118,7 @@ function done() {
   else load();
 }
 function poll() {
+  if (++ticks % 10 == 0) digitalPulse(LED1, 1, 30);
   var st = Puck.accelRd(0x3A, 4);
   if (st[1] & 0x40) { overruns++; Puck.accelWr(0x0A, 0); Puck.accelWr(0x0A, FIFO_ON); return; }
   if (st[1] & 0x10) return;

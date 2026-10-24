@@ -23,7 +23,8 @@ that fails can simply be done again. What happens to the Puck:
 4. The Puck makes a file in its flash for the samples asked for - or as
    many as fit - and records at the chosen rate (±16 g, ±2000 deg/s),
    through a small RAM buffer that's written to flash about once a second.
-   When it's done it says so.
+   While it's recording, its red LED flashes briefly once a second. When
+   it's done it says so.
 5. The app fetches the samples, 8 frames of 20 samples at a time, each
    checked with a CRC32; missing or damaged frames are asked for again.
    Only when it has every frame does it tell the Puck to delete its copy.
