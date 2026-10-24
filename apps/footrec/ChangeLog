@@ -1,3 +1,4 @@
 0.01: New App!
 0.02: Upload the Puck code from the app (no raw_stream.js needed on the Puck), restart the Puck afterwards, show errors from the Puck
 0.03: Graph of a recording, with zoom and pan
+0.04: Selectable sample rate, 12.5Hz to 833Hz (and settings in the Settings app)

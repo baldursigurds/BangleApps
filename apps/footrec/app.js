@@ -11,7 +11,7 @@
    n * 12 bytes of int16 LE gx,gy,gz,ax,ay,az, uint8 checksum (sum & 255)
  Only the samples are saved, in the same format as raw_plot.py's recordings
  so plot_recording.py reads them directly:
-   footrec.MMDDhhmmss.bin   int16 LE gx,gy,gz,ax,ay,az at 208 Hz
+   footrec.MMDDhhmmss.bin   int16 LE gx,gy,gz,ax,ay,az at the chosen rate
    footrec.MMDDhhmmss.json  description, including how many samples are valid
 
  StorageFile (the appendable kind) can't store byte 0xFF, so the .bin is a
@@ -23,7 +23,12 @@
 var PREFIX = "footrec.";
 var SETTINGS_FILE = "footrec.json";
 var LENGTHS = [5, 10, 20, 30, 60, 120, 300]; // seconds
-var RATE_HZ = 208, BYTES_PER_SAMPLE = 12;
+var BYTES_PER_SAMPLE = 12;
+// Sample rates, in Hz. Index + 1 is the LSM6DS3TR-C's rate code (ODR_XL,
+// ODR_G, ODR_FIFO all use 1 = 12.5Hz ... 7 = 833Hz). 12 bytes per sample, so
+// 416Hz is ~5kB/s and 833Hz ~10kB/s over Bluetooth - the higher rates may
+// lose frames (shown, and counted in the .json).
+var RATES = [12.5, 26, 52, 104, 208, 416, 833];
 var NUS = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
 var NUS_TX = "6e400003-b5a3-f393-e0a9-e50e24dcca9e"; // notifications from the Puck
 var NUS_RX = "6e400002-b5a3-f393-e0a9-e50e24dcca9e"; // writes to the Puck's console
@@ -31,11 +36,12 @@ var NO_DATA_MS = 3000;
 
 /* The code run on the Puck, sent as a single line - so no // comments, and
  every statement ends with ; or }. Same as raw_stream.js (for raw_plot.py):
- * The LSM6DS3TR-C fills its FIFO with gyro + accelerometer samples at 208 Hz:
-   0x0D INT1_CTRL = 0 (no per-sample IRQ), 0x10 CTRL1_XL = 0x54 (208Hz,
-   +/-16g), 0x11 CTRL2_G = 0x5C (208Hz, +/-2000 deg/s), 0x15/0x16 = 0
+ * The LSM6DS3TR-C fills its FIFO with gyro + accelerometer samples at RATE
+   Hz, which has rate code ODR (both filled in by puckCode()):
+   0x0D INT1_CTRL = 0 (no per-sample IRQ), 0x10 CTRL1_XL = ODR<<4 | 0x04
+   (+/-16g), 0x11 CTRL2_G = ODR<<4 | 0x0C (+/-2000 deg/s), 0x15/0x16 = 0
    (high-performance mode), FIFO_CTRL1-4 0x06-0x09 = 0,0,9,0 (gyro + accel,
-   no decimation), FIFO_CTRL5 0x0A = 0 (clear) then 0x2E (208Hz, continuous)
+   no decimation), FIFO_CTRL5 0x0A = 0 (clear) then ODR<<3 | 6 (continuous)
  * Every 100ms, poll() reads FIFO_STATUS1-4 (0x3A) and drains whole samples
    from FIFO_DATA_OUT (0x3E) with multi-byte Puck.accelRd (firmware 2v29+),
    realigning to the start of a sample, resetting the FIFO if it overran,
@@ -49,7 +55,7 @@ var NO_DATA_MS = 3000;
  program if there is one. */
 var PUCK_CODE = `
 (function(){
-var CHUNK = 20, FIFO_ON = 0x2E, frame = new Uint8Array(7 + CHUNK * 12), seq = 0, overrun = 0;
+var ODR = %ODR%, CHUNK = 20, FIFO_ON = (ODR << 3) | 6, frame = new Uint8Array(7 + CHUNK * 12), seq = 0, overrun = 0;
 function send(d, n) {
   var len = n * 12;
   frame[0] = 0xA5; frame[1] = 0x5A; frame[2] = seq & 255; frame[3] = seq >> 8;
@@ -76,21 +82,27 @@ function poll() {
     send(d, n); samples -= n;
   }
 }
-Puck.accelOn(208);
+Puck.accelOn(%RATE%);
 if (!(Puck.accelRd(0x0F, 1) instanceof Uint8Array)) {
   Puck.accelOff();
   Bluetooth.println("ERROR: Puck firmware " + process.env.VERSION + " is too old - needs 2v29+");
   return;
 }
-[[0x0D, 0], [0x10, 0x54], [0x11, 0x5C], [0x15, 0], [0x16, 0], [0x0A, 0],
+[[0x0D, 0], [0x10, (ODR << 4) | 0x04], [0x11, (ODR << 4) | 0x0C], [0x15, 0], [0x16, 0], [0x0A, 0],
  [0x06, 0], [0x07, 0], [0x08, 0x09], [0x09, 0], [0x0A, FIFO_ON]].forEach(function(r) { Puck.accelWr(r[0], r[1]); });
 setInterval(poll, 100);
 })();
 `.replace(/\n\s*/g, "");
 var RESTORE = "Puck.accelOff();load();";
 
+// PUCK_CODE for a sample rate from RATES
+function puckCode(rate) {
+  return PUCK_CODE.replace("%ODR%", RATES.indexOf(rate) + 1).replace("%RATE%", rate);
+}
+
 var storage = require("Storage");
-var settings = Object.assign({ seconds: 10 }, storage.readJSON(SETTINGS_FILE, true) || {});
+var settings = Object.assign({ seconds: 10, rate: 208 }, storage.readJSON(SETTINGS_FILE, true) || {});
+if (RATES.indexOf(settings.rate) < 0) settings.rate = 208;
 var rec; // the recording in progress
 
 function pad(n) { return ("0" + n).substr(-2); }
@@ -108,7 +120,8 @@ function show(lines) {
 // ---------------------------------------------------------------- Recording
 
 function startRecording() {
-  var target = Math.round(settings.seconds * RATE_HZ);
+  var rate = settings.rate;
+  var target = Math.round(settings.seconds * rate);
   var size = target * BYTES_PER_SAMPLE;
   if (storage.getFree() < size + 4096)
     return finished(["Not enough", "storage for", settings.seconds + "s"]);
@@ -118,7 +131,7 @@ function startRecording() {
           pad(d.getMinutes()) + pad(d.getSeconds()),
     started: d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + "T" +
              pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds()), // local time
-    target: target, size: size,
+    rate: rate, seconds: settings.seconds, target: target, size: size,
     samples: 0, lostFrames: 0, overruns: 0, seq: -1,
     buf: new Uint8Array(2048), rd: 0, wr: 0, // received bytes not yet parsed
     lastData: 0, done: false,
@@ -168,7 +181,7 @@ function startRecording() {
     return sendText("\x10NRF.on('disconnect',function(){" + RESTORE + "});\n");
   }).then(function() {
     // ...then send the streaming code, which starts straight away
-    return sendText("\x10" + PUCK_CODE + "\n");
+    return sendText("\x10" + puckCode(r.rate) + "\n");
   }).then(check).then(function() {
     r.lastData = Date.now();
     r.progress = setInterval(progress, 500);
@@ -182,7 +195,7 @@ function progress() {
   if (Date.now() - rec.lastData > NO_DATA_MS)
     return finish(rec.error || (rec.samples ? "Data stopped" : "No data from the Puck"));
   show(["Recording",
-        (rec.samples / RATE_HZ).toFixed(1) + " / " + settings.seconds + "s",
+        (rec.samples / rec.rate).toFixed(1) + " / " + rec.seconds + "s @" + rec.rate + "Hz",
         rec.lostFrames || rec.overruns ? "lost " + rec.lostFrames + "/" + rec.overruns : "",
         "BTN: stop"]);
 }
@@ -259,16 +272,16 @@ function finish(reason) {
   var lines = [reason];
   if (r.samples) {
     storage.writeJSON(r.name + ".json", {
-      file: r.name + ".bin", started: r.started, rate_hz: RATE_HZ,
+      file: r.name + ".bin", started: r.started, rate_hz: r.rate,
       dtype: "<i2", columns: ["gx", "gy", "gz", "ax", "ay", "az"],
       gyro_dps_per_lsb: 0.07, accel_g_per_lsb: 0.000488,
-      samples: r.samples, seconds: Math.round(r.samples / RATE_HZ * 100) / 100,
+      samples: r.samples, seconds: Math.round(r.samples / r.rate * 100) / 100,
       lost_frames: r.lostFrames, fifo_overruns: r.overruns,
       note: "samples are contiguous; lost frames/overruns mean gaps in time that aren't " +
             "marked in the .bin. Only the first 'samples' samples of the .bin are valid.",
       recorded_by: "Bangle.js footrec"
     });
-    lines.push((r.samples / RATE_HZ).toFixed(1) + "s saved", r.name.substr(PREFIX.length));
+    lines.push((r.samples / r.rate).toFixed(1) + "s saved", r.name.substr(PREFIX.length));
     if (r.lostFrames || r.overruns) lines.push("lost " + r.lostFrames + "/" + r.overruns);
   } else {
     lines.push("Nothing saved");
@@ -358,6 +371,7 @@ function showGraph(name, back) {
   var inFile = Math.floor((storage.read(file) || "").length / BYTES_PER_SAMPLE);
   var total = Math.min(meta.samples || inFile, inFile);
   if (!total) return E.showAlert("No samples").then(back);
+  var rate = meta.rate_hz || 208;
   var R = Bangle.appRect;
   var view = { s0: 0, n: total }; // first sample, and number of samples, shown
   var dragged = 0, panned = 0;
@@ -398,8 +412,8 @@ function showGraph(name, back) {
       }
     });
     g.setColor(g.theme.fg).setFontAlign(-1, -1).drawString(name.substr(PREFIX.length), R.x + 1, R.y);
-    g.setFontAlign(-1, 1).drawString((view.s0 / RATE_HZ).toFixed(1) + "s", R.x + 1, R.y2);
-    g.setFontAlign(1, 1).drawString(((view.s0 + view.n) / RATE_HZ).toFixed(1) + "s", R.x2, R.y2);
+    g.setFontAlign(-1, 1).drawString((view.s0 / rate).toFixed(1) + "s", R.x + 1, R.y2);
+    g.setFontAlign(1, 1).drawString(((view.s0 + view.n) / rate).toFixed(1) + "s", R.x2, R.y2);
     g.setFontAlign(0, 1).drawString(view.n < total ? "BTN: out" : "tap: zoom", R.x + R.w / 2, R.y2);
   }
 
@@ -446,6 +460,14 @@ function showMenu() {
       format: function(v) { return LENGTHS[v] + "s"; },
       onchange: function(v) {
         settings.seconds = LENGTHS[v];
+        storage.writeJSON(SETTINGS_FILE, settings);
+      }
+    },
+    "Rate": {
+      value: RATES.indexOf(settings.rate), min: 0, max: RATES.length - 1,
+      format: function(v) { return RATES[v] + "Hz"; },
+      onchange: function(v) {
+        settings.rate = RATES[v];
         storage.writeJSON(SETTINGS_FILE, settings);
       }
     },

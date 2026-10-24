@@ -15,7 +15,8 @@ What happens to the Puck:
 2. It sets a disconnect handler that turns the accelerometer off and runs
    `load()` - restarting the Puck and its saved program, if it has one.
 3. It sends the streaming code (the same as `raw_stream.js` in the folder
-   above): 208 Hz, ±16 g, ±2000 deg/s, streamed straight away.
+   above, but at the chosen rate): ±16 g, ±2000 deg/s, streamed straight
+   away.
 4. When recording ends (or is cancelled) the app sends the same restart
    before disconnecting - and if the connection is just lost, the Puck's
    disconnect handler restarts it anyway.
@@ -31,7 +32,15 @@ is lost, just as when uploading from the Web IDE.
   early (what's been recorded is kept). Make sure the Puck isn't connected
   to anything else (eg. the Espruino Web IDE), as then it isn't advertising.
   If the Puck reports an error (eg. firmware too old) it's shown.
-* **Length** - 5 s to 5 minutes, default 10 s. Remembered in `footrec.json`.
+* **Length** - 5 s to 5 minutes, default 10 s.
+* **Rate** - samples per second: 12.5, 26, 52, 104, 208 (default), 416 or
+  833 Hz. Each sample is 12 bytes, so 416 Hz is ~5 kB/s and 833 Hz ~10 kB/s
+  over Bluetooth, handled in JavaScript at both ends - the higher rates may
+  not keep up. If frames are lost, it's shown at the end of recording and
+  counted in the `.json`.
+
+Length and Rate are remembered in `footrec.json`, and can also be set in
+the Settings app (Apps → Foot Recorder).
 * **Recordings** - lists recordings, newest first; select one to see its
   graph or delete it. After recording, tap the screen to see its graph.
 
@@ -58,9 +67,10 @@ Each recording is two files in Storage, in the same format as `raw_plot.py`
 recordings:
 
 * `footrec.MMDDhhmmss.bin` - int16 little-endian `gx,gy,gz,ax,ay,az` per
-  sample, 208 samples/s. Gyro 0.07 deg/s per unit, accelerometer
+  sample, at the chosen rate. Gyro 0.07 deg/s per unit, accelerometer
   0.000488 g per unit.
-* `footrec.MMDDhhmmss.json` - when it was recorded, the scales, how many
+* `footrec.MMDDhhmmss.json` - when it was recorded, the rate (`rate_hz`),
+  the scales, how many
   `samples` were recorded, and any lost frames / FIFO overruns (gaps in
   time that aren't marked in the `.bin`).
 
