@@ -2,3 +2,6 @@
 0.02: Upload the Puck code from the app (no raw_stream.js needed on the Puck), restart the Puck afterwards, show errors from the Puck
 0.03: Graph of a recording, with zoom and pan
 0.04: Selectable sample rate, 12.5Hz to 833Hz (and settings in the Settings app)
+0.05: Save recording descriptions (.json) as standard JSON
+0.06: The Puck records into its memory, then the samples are fetched (with retries) - no more lost data from Bluetooth not keeping up
+0.07: The Puck records to its flash (much longer recordings), keeps them until fetched - transfers can be retried, and recordings survive a lost connection. Fetch from Puck menu item
