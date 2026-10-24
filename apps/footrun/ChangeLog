@@ -1,2 +1,5 @@
 0.01: New App!
 0.02: Colour icon
+0.03: The Puck blinks green three times when it starts, and blue once per stride
+0.04: The Puck code is in puck.js and puck.c, built into the module footrun.puck (puckcode.js)
+0.05: Settings: sample rate, stillness detector (per sample or windowed, thresholds, samples), and an optional speed check
