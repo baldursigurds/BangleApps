@@ -2,7 +2,7 @@
   "id": "footrec",
   "name": "Foot Recorder",
   "shortName": "FootRec",
-  "version": "0.08",
+  "version": "0.09",
   "description": "Record raw accelerometer and gyro data from a Puck.js v2 to a file - the Puck records to its flash, then the app fetches it, retrying if needed",
   "icon": "app.png",
   "tags": "tool,bluetooth",

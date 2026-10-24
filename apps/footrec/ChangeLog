@@ -6,3 +6,4 @@
 0.06: The Puck records into its memory, then the samples are fetched (with retries) - no more lost data from Bluetooth not keeping up
 0.07: The Puck records to its flash (much longer recordings), keeps them until fetched - transfers can be retried, and recordings survive a lost connection. Fetch from Puck menu item
 0.08: The Puck blinks its red LED while recording
+0.09: Colour icon
