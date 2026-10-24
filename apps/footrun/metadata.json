@@ -2,7 +2,7 @@
   "id": "footrun",
   "name": "Foot Run",
   "shortName": "FootRun",
-  "version": "0.05",
+  "version": "0.06",
   "description": "Stride by stride feedback from a Puck.js v2 on your shoe: uploads the stride-measuring code to the Puck, then shows each stride's length and cadence, with a short buzz per stride",
   "icon": "app.png",
   "tags": "tool,bluetooth,health",

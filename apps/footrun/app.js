@@ -104,6 +104,7 @@ function syncStrides(d) {
 
 // A notification from the stride characteristic
 function onStride(event) {
+  if (!session || session.done) return; // stopped, but notifications still arriving
   var d = event.target.value;
   var n = d.getFloat32(0, true), dx = d.getFloat32(4, true), dy = d.getFloat32(8, true);
   var dt = d.getFloat32(16, true);
@@ -141,9 +142,12 @@ function connect() {
   }).then(check).then(function(gatt) {
     s.gatt = gatt;
     // Already running the code? Then it has the stride service - but is it
-    // using these settings? If not, it's restarted with them
+    // using these settings? If not (or it can't say - eg. code from an older
+    // footrun, without footrunSettings), it's restarted with them
     return gatt.getPrimaryService(STRIDE_SERVICE).then(function() {
-      return openConsole(s).then(function() { return ask(s, "footrunSettings"); }).then(sameSettings);
+      return openConsole(s).then(function() {
+        return ask(s, "typeof footrunSettings=='string'?footrunSettings:'none'");
+      }).then(sameSettings, function() { return false; });
     }, function() { return false; });
   }).then(check).then(function(ready) {
     if (ready) return;
@@ -259,7 +263,7 @@ function onText(s, dv) {
       if (l) s.lines.push(l);
       if (s.lines.length > 20) s.lines.shift();
       s.line = "";
-    } else if (c >= 32 && c < 127 && s.line.length < 100) s.line += String.fromCharCode(c);
+    } else if (c >= 32 && c < 127 && s.line.length < 300) s.line += String.fromCharCode(c); // replies (eg. settings) can be long
   }
 }
 
@@ -275,15 +279,18 @@ function send(s, text) {
   return Promise.resolve().then(next);
 }
 
-// The result of a JS expression on the Puck, as a string
+// The result of a JS expression on the Puck, as a string - or, if the Puck
+// gives an error instead (eg. Uncaught ReferenceError), that error
 function ask(s, expr) {
   var tag = "FR" + Math.floor(Math.random() * 1e6);
   s.lines = [];
   return send(s, "\x10Bluetooth.println('" + tag + " '+(" + expr + "))\n").then(function() {
     return new Promise(function(resolve, reject) {
       var t0 = Date.now(), iv = setInterval(function() {
-        for (var i = 0; i < s.lines.length; i++)
+        for (var i = 0; i < s.lines.length; i++) {
           if (s.lines[i].indexOf(tag + " ") == 0) { clearInterval(iv); return resolve(s.lines[i].substr(tag.length + 1)); }
+          if (/^Uncaught/.test(s.lines[i])) { clearInterval(iv); return reject("Puck: " + s.lines[i]); }
+        }
         if (Date.now() - t0 > 5000 || s.done) { clearInterval(iv); reject("no reply from the Puck"); }
       }, 100);
     });
