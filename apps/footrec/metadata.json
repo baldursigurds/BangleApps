@@ -1,0 +1,20 @@
+{
+  "id": "footrec",
+  "name": "Foot Recorder",
+  "shortName": "FootRec",
+  "version": "0.03",
+  "description": "Record raw accelerometer and gyro data from a Puck.js v2 to a file - the app uploads the code the Puck runs, and restarts it afterwards",
+  "icon": "app.png",
+  "tags": "tool,bluetooth",
+  "supports": ["BANGLEJS2"],
+  "readme": "README.md",
+  "storage": [
+    { "name": "footrec.app.js", "url": "app.js" },
+    { "name": "footrec.img", "url": "app-icon.js", "evaluate": true }
+  ],
+  "data": [
+    { "name": "footrec.json" },
+    { "wildcard": "footrec.*.bin" },
+    { "wildcard": "footrec.*.json" }
+  ]
+}

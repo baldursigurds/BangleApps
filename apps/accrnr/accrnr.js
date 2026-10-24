@@ -101,21 +101,35 @@ function display() {
   g.setColor("#000000");
   g.fillRect(0,24,w,h);
   Bangle.drawWidgets();
-  g.setFontAlign(0,0);
-  g.setFont("14:3");
-  g.setColor("#ffffff");
+  g.setFontAlign(-1,0);
+  g.setFont("14:2");
+  g.setColor("#ff8080");
   //if(blinker)
   //  g.drawString("blinker", w/2, (h-24)/4 + 24);
   blinker = !blinker;
   if(recordData)
     if(!dataFileFull)
-      g.drawString("FILE: " + (100*fileIdx/dataFileSize).toFixed(0) + "%", w/2, (h-24)/4 + 24); 
+      g.drawString("FLE: " + (100*fileIdx/dataFileSize).toFixed(0) + "%",
+	10, (h-24)/5 + 24); 
     else
-      g.drawString("FILE: 100%" , w/2, (h-24)/4 + 24); 
+      g.drawString("FLE: 100%" ,
+	10, (h-24)/5 + 24); 
   else
-    g.drawString("NO FILE" , w/2, (h-24)/4 + 24); 
-  g.drawString("HRM: " + hrm, w/2, (h-24)/2 + 24);
-  g.drawString("SPD: " + (speed*3.6).toFixed(1), w/2, (h-24)*3/4 + 24);
+    g.drawString("NO FILE" ,
+      10, (h-24)/5 + 24); 
+  g.drawString("HRM: " + hrm,
+    10, (h-24)*2/5 + 24);
+  g.drawString("SPD: " + (speed*3.6).toFixed(1),
+    10, (h-24)*3/5 + 24);
+  g.drawString("CLK: " + timeString(),
+    10, (h-24)*4/5 + 24)
+}
+
+function timeString() {
+  let dateObj = new Date();
+  return dateObj.getHours().toFixed(0).padStart(2,"0")
+    + "." + dateObj.getMinutes().toFixed(0).padStart(2,"0")
+    + ":" + dateObj.getSeconds().toFixed(0).padStart(2,"0");
 }
 
 function log(s) {

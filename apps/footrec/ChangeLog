@@ -1,0 +1,3 @@
+0.01: New App!
+0.02: Upload the Puck code from the app (no raw_stream.js needed on the Puck), restart the Puck afterwards, show errors from the Puck
+0.03: Graph of a recording, with zoom and pan
