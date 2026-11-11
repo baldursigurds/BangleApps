@@ -33,7 +33,6 @@ function display() {
   if(state == "clear") {
     g.drawString("COFFEE", w/2,(h-24)/3+24);
     g.drawString("TIME" , w/2,(h-24)*2/3+24);
-    console.log("We are in clear");
   } else {
     time = (Date.now() - startTime) % 3600000;
     min  = ( time/60000      ).toFixed(0).padStart(2,'0');
@@ -73,6 +72,14 @@ function onBtn(n,e) {
 }
 
 display();
+
+setWatch(
+  () => load(),
+  BTN,
+  {
+    repeat: true,
+    edge:   "rising"
+});
 
 Bangle.setUI({
   mode: "custom",

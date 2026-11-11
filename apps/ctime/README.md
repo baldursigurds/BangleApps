@@ -8,6 +8,7 @@ An espresso timer
 - Keeps display on
 - Tap screen to start/stop
 - Double tap to clear screen
+- Button exits
 - Widgets
 
 ## Creator
